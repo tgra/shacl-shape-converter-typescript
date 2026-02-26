@@ -1,0 +1,1 @@
+{"root":["./src/cli.ts","./src/generator/class-generator.ts","./src/generator/index-generator.ts","./src/generator/index.ts","./src/generator/property-generator.ts","./src/parser/shacl-parser.ts","./src/templates/class.template.ts","./src/utils/naming.ts","./src/utils/rdf-uri.ts","./src/utils/vocab-builder.ts"],"version":"5.9.3"}

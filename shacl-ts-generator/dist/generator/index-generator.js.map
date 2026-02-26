@@ -1,0 +1,1 @@
+{"version":3,"file":"index-generator.js","sourceRoot":"","sources":["../../src/generator/index-generator.ts"],"names":[],"mappings":";;;AAEA,MAAa,cAAc;IAEzB,aAAa,CAAC,MAAoB;QAEhC,MAAM,OAAO,GAAG,MAAM;aACnB,GAAG,CAAC,CAAC,CAAC,EAAE,CAAC,oBAAoB,CAAC,CAAC,IAAI,GAAG,CAAC;aACvC,IAAI,CAAC,IAAI,CAAC,CAAA;QAEb,OAAO,OAAO,CAAA;IAChB,CAAC;CACF;AAVD,wCAUC"}

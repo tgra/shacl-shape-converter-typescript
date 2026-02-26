@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+
+    "rootDir": "src",
+    "outDir": "dist",
+
+    "strict": true,
+
+    "esModuleInterop": true,
+
+    "declaration": true,
+    "sourceMap": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+
+  "include": [
+    "src/**/*"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "output",
+    "tests"
+  ], 
+
+  "scripts": {
+  "clean": "rm -rf dist",
+  "build": "npm run clean && tsc",
+  "dev": "ts-node src/cli.ts"
+}
+}
