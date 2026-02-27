@@ -1,36 +1,167 @@
 import { ShapePropertyModel } from "../model/shacl-model.js"
+import { interpretCardinality } from "../utils/cardinality.js"
+import { generatePropertyType } from "./type-generator.js"
+
+import { TermMapping, ValueMapping } from "rdfjs-wrapper"
 
 export class PropertyGenerator {
 
   generateProperty(prop: ShapePropertyModel): string {
 
-    if (prop.maxCount === 1 || !prop.maxCount) {
+    const cardinality = interpretCardinality(
+      prop.minCount,
+      prop.maxCount
+    )
+
+    const baseType = this.inferType(prop)
+
+    const path = prop.path
+
+    const mapping = this.inferMapping(prop)
+
+    const identifier = prop.codeIdentifier
+    const capitalized = this.capitalize(identifier)
+
+    // --------------------------------------------------
+    // MULTI VALUE PROPERTY
+    // --------------------------------------------------
+
+    if (cardinality.multiple) {
 
       return `
-  get ${prop.codeIdentifier}(): string | undefined {
-    return this.singularNullable(
-      "${prop.path}",
-      ValueMapping.literalToString
-    )
-  }
-  set ${prop.codeIdentifier}(value: string | undefined) {
-    this.overwriteNullable(
-      "${prop.path}", value,
+  get ${identifier}(): Set<${baseType}> {
+    const values = new Set<${baseType}>()
+
+    for (const value of this.objects(
+      "${path}",
+      ${mapping},
       TermMapping.stringToLiteral
-    )
+    )) {
+      values.add(value as ${baseType})
+    }
+
+    return values
+  }
+
+  add${capitalized}(value: ${baseType}) {
+      
+      const valueSet = this.objects(
+        "${path}",
+        ValueMapping.literalToString,
+        TermMapping.stringToLiteral
+        )
+        valueSet.add(value)
+       
+      }
+
+  delete${capitalized}(value: ${baseType}) {
+      const valueSet = this.objects(
+        "${path}",
+        ValueMapping.literalToString,
+        TermMapping.stringToLiteral
+        )
+        valueSet.delete(value)
   }
 `
-}
+    }
+
+    // --------------------------------------------------
+    // SINGLE VALUE PROPERTY
+    // --------------------------------------------------
+
+    const returnType = generatePropertyType(baseType, cardinality)
 
     return `
-  get ${prop.codeIdentifier}(): Set<string> {
-    return this.objects(
-      "${prop.path}",
-      ValueMapping.iriToString
+  get ${identifier}(): ${returnType} | undefined {
+    
+    return this.singularNullable(
+      "${path}",
+      ${mapping}
+      ) 
+  }
+
+
+
+  set ${identifier}(value: ${baseType} | undefined) {
+
+    if (!value || value === undefined || value === null) {
+      throw new Error("${identifier} cannot be empty")
+    }
+
+    this.overwriteNullable(
+      "${path}",
+      value,
+      TermMapping.${this.termMapping(baseType)}
     )
   }
 `
   }
 
- 
+  // --------------------------------------------------
+  // Type Inference
+  // --------------------------------------------------
+
+  private inferType(prop: ShapePropertyModel): string {
+
+    if (!prop.datatype) return "string"
+
+    const dt = prop.datatype.toLowerCase()
+
+    if (dt.includes("integer") || dt.includes("decimal"))
+      return "number"
+
+    if (dt.includes("boolean"))
+      return "boolean"
+
+    if (dt.includes("date"))
+      return "Date"
+
+    return "string"
+  }
+
+  // --------------------------------------------------
+  // Mapping Inference
+  // --------------------------------------------------
+
+  private inferMapping(prop: ShapePropertyModel): string {
+
+    if (!prop.datatype)
+      return "ValueMapping.literalToString"
+
+    const dt = prop.datatype.toLowerCase()
+
+    if (dt.includes("integer") || dt.includes("decimal"))
+      return "ValueMapping.literalToNumber"
+
+    if (dt.includes("boolean"))
+      return "ValueMapping.literalToBoolean"
+
+    return "ValueMapping.literalToString"
+  }
+
+  // --------------------------------------------------
+  // Term Mapping Selection
+  // --------------------------------------------------
+
+  private termMapping(type: string): string {
+
+    switch (type) {
+
+      case "number":
+        return "numberToLiteral"
+
+      case "boolean":
+        return "booleanToLiteral"
+
+      case "Date":
+        return "dateToLiteral"
+
+      default:
+        return "stringToLiteral"
+    }
+  }
+
+  private capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1)
+  }
 }

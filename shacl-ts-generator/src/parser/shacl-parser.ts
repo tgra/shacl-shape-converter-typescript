@@ -15,9 +15,7 @@ export class ShaclParser {
 
     const validator = new ValidationErrorCollector()
 
-    const shapes = this.extractShapes(quads)
-
-    this.validateShapes(shapes, validator)
+    const shapes = this.extractShapes(quads, validator)
 
     if (validator.hasErrors()) {
       validator.printAndExit()
@@ -27,17 +25,20 @@ export class ShaclParser {
   }
 
   // ----------------------------------------------------
-  // ⭐ Optimized Shape Extraction
+  // ⭐ Shape Extraction
   // ----------------------------------------------------
 
-  private extractShapes(quads: any[]): ShapeModel[] {
+  private extractShapes(
+    quads: any[],
+    validator: ValidationErrorCollector
+  ): ShapeModel[] {
 
     const shapes: ShapeModel[] = []
 
     const SHACL = "http://www.w3.org/ns/shacl#"
-    const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    const RDF_TYPE =
+      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 
-    // ⭐ Build lookup maps (performance optimization)
     const bySubject = new Map<string, any[]>()
 
     for (const q of quads) {
@@ -47,7 +48,6 @@ export class ShaclParser {
       bySubject.get(q.subject.value)!.push(q)
     }
 
-    // Detect NodeShapes
     const nodeShapes = quads.filter(
       q =>
         q.predicate.value === RDF_TYPE &&
@@ -59,9 +59,13 @@ export class ShaclParser {
       const shapeNode = shapeQuad.subject.value
       const shapeQuads = bySubject.get(shapeNode) || []
 
-      const properties = this.extractProperties(quads, shapeNode)
+      const properties = this.extractProperties(
+        quads,
+        shapeNode,
+        validator
+      )
 
-      let codeIdentifier: string | undefined
+      let codeIdentifier
       let targetClass
       let targetNode
       let targetSubjectsOf
@@ -93,7 +97,14 @@ export class ShaclParser {
         }
       }
 
-      const shape: ShapeModel = {
+      if (!codeIdentifier) {
+        validator.add(
+          `Shape ${shapeNode} is missing required sh:codeIdentifier`
+        )
+        continue
+      }
+
+      shapes.push({
         name: this.extractName(shapeNode),
         codeIdentifier,
         properties,
@@ -101,9 +112,7 @@ export class ShaclParser {
         targetNode,
         targetSubjectsOf,
         targetObjectsOf
-      }
-
-      shapes.push(shape)
+      })
     }
 
     return shapes
@@ -115,14 +124,14 @@ export class ShaclParser {
 
   private extractProperties(
     quads: any[],
-    shapeNode: string
+    shapeNode: string,
+    validator: ValidationErrorCollector
   ): ShapePropertyModel[] {
 
     const SHACL = "http://www.w3.org/ns/shacl#"
 
     const properties: ShapePropertyModel[] = []
 
-    // Build lookup map for properties
     const bySubject = new Map<string, any[]>()
 
     for (const q of quads) {
@@ -175,6 +184,20 @@ export class ShaclParser {
         }
       }
 
+      if (!property.path) {
+        validator.add(
+          `Property ${propertyNode} is missing sh:path`
+        )
+        continue
+      }
+
+      if (!property.codeIdentifier) {
+        validator.add(
+          `Property ${propertyNode} is missing sh:codeIdentifier`
+        )
+        continue
+      }
+
       properties.push(property as ShapePropertyModel)
     }
 
@@ -182,40 +205,20 @@ export class ShaclParser {
   }
 
   // ----------------------------------------------------
-  // ⭐ Validation
+  // ⭐ Utilities
   // ----------------------------------------------------
-
-  private validateShapes(
-    shapes: ShapeModel[],
-    validator: ValidationErrorCollector
-  ) {
-
-    for (const shape of shapes) {
-
-      if (!shape.codeIdentifier) {
-        validator.add(
-          `Shape ${shape.name} is missing required sh:codeIdentifier`
-        )
-      }
-
-      for (const prop of shape.properties ?? []) {
-
-        if (!prop.path) {
-          validator.add(
-            `Property in shape ${shape.name} is missing sh:path`
-          )
-        }
-
-        if (!prop.codeIdentifier) {
-          validator.add(
-            `Property ${prop.path ?? "[unknown path]"} in shape ${shape.name} is missing sh:codeIdentifier`
-          )
-        }
-      }
-    }
-  }
 
   private extractName(uri: string) {
     return uri.split(/[/#]/).pop() || "Unknown"
+  }
+
+  private requireValue<T>(
+    value: T | undefined,
+    message: string
+  ): T {
+    if (value === undefined || value === null) {
+      throw new Error(message)
+    }
+    return value
   }
 }
