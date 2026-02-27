@@ -1,9 +1,9 @@
 import fs from "fs-extra"
 import path from "path"
 
-import { ShaclParser } from "../parser/shacl-parser"
-import { ClassGenerator } from "./class-generator"
-import { NamingUtils } from "../utils/naming"
+import { ShaclParser } from "../parser/shacl-parser.js"
+import { ClassGenerator } from "./class-generator.js"
+import { NamingUtils } from "../utils/naming.js"
 
 export async function generateFromShacl(
   input: string,
@@ -17,9 +17,11 @@ export async function generateFromShacl(
 
   await fs.ensureDir(output)
 
+
+  
   for (const shape of shapes) {
 
-    shape.name = NamingUtils.toClassName(shape.name)
+    shape.name = NamingUtils.toClassName(shape.codeIdentifier)
 
     const classCode = classGenerator.generate(shape)
 

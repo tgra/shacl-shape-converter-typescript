@@ -1,7 +1,7 @@
 import fs from "fs-extra"
 import path from "path"
-import { RdfUriUtils } from "./rdf-uri"
-import { NamingUtils } from "./naming"
+import { RdfUriUtils } from "./rdf-uri.js"
+import { NamingUtils } from "./naming.js"
 
 export interface VocabularyTerm {
   uri: string

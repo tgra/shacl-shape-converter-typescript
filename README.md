@@ -1,8 +1,8 @@
 # SHACL → TypeScript Class Generator
 
-A Node.js + TypeScript CLI tool that transforms SHACL shape files into strongly typed TypeScript RDF resource wrappers.
+A Node.js + TypeScript CLI tool that transforms SHACL shape definitions into strongly typed TypeScript RDF resource wrappers.
 
-The generated classes follow RDFJS patterns and use `rdfjs-wrapper` for RDF term handling.
+The generator enforces SHACL metadata requirements and produces RDFJS-compatible class models.
 
 ---
 
@@ -10,19 +10,115 @@ The generated classes follow RDFJS patterns and use `rdfjs-wrapper` for RDF term
 
 Given a SHACL shape file, this tool:
 
-* Parses SHACL NodeShapes using the N3 RDF parser
+* Parses `sh:NodeShape` definitions using the N3 RDF parser
+* Validates required generator metadata
+* Requires `sh:codeIdentifier` for shapes and properties
 * Extracts property constraints
 * Generates TypeScript RDF resource wrapper classes
 * Generates vocabulary bindings
-* Supports RDFJS term mapping patterns
+* Fails fast with structured validation reporting
 
-This allows developers to work with RDF data using strongly typed TypeScript models.
+This enables strongly typed, RDFJS-compatible TypeScript models derived directly from SHACL.
+
+---
+
+## `sh:codeIdentifier` Requirement
+
+This generator requires:
+
+```
+sh:codeIdentifier
+```
+
+### Specification Status
+
+`sh:codeIdentifier` is defined in the **SHACL 1.2 Core Working Draft**:
+
+[https://www.w3.org/TR/shacl12-core/#codeIdentifier](https://www.w3.org/TR/shacl12-core/#codeIdentifier)
+
+From the specification:
+
+> Shapes may have one value for sh:codeIdentifier to suggest a name that can be used for a representation of the shape in APIs, query languages and similar programmatic access.
+
+The value:
+
+* Must be a literal
+* Must be `xsd:string`
+* Must match: `^[a-zA-Z_][a-zA-Z0-9_]*$`
+
+### How This Generator Uses It
+
+* For shapes → TypeScript class name
+* For properties → TypeScript field name
+* Ensures deterministic code generation
+
+It must expand to:
+
+```
+http://www.w3.org/ns/shacl#codeIdentifier
+```
+
+Correct usage:
+
+```ttl
+sh:codeIdentifier "Person" ;
+```
+
+⚠ Do **not** write:
+
+```ttl
+sh:codeIdentifier: "Person" ;
+```
+
+The extra colon changes the IRI and prevents extraction.
+
+---
+
+## Validation Rules
+
+The generator enforces deterministic metadata requirements.
+
+If validation fails:
+
+* All validation errors are reported
+* The CLI exits gracefully
+* No partial code is generated
+
+### Required Shape Metadata
+
+Each `sh:NodeShape` must define:
+
+```
+sh:codeIdentifier
+```
+
+Used as:
+
+* TypeScript class name
+* Stable API identifier
+* Deterministic generation key
+
+### Required Property Metadata
+
+Each property shape must define:
+
+```
+sh:path
+sh:codeIdentifier
+```
+
+Where:
+
+* `sh:path` → RDF predicate mapping
+* `sh:codeIdentifier` → TypeScript field name
+
+If missing, generation fails.
 
 ---
 
 ## Dependencies
 
-### Runtime Dependencies
+### Runtime
 
 ```json
 {
@@ -34,9 +130,7 @@ This allows developers to work with RDF data using strongly typed TypeScript mod
 }
 ```
 
----
-
-### Development Dependencies
+### Development
 
 ```json
 {
@@ -50,7 +144,7 @@ This allows developers to work with RDF data using strongly typed TypeScript mod
 
 ---
 
-## Architecture
+## Project Structure
 
 ```
 shacl-ts-generator/
@@ -63,12 +157,14 @@ shacl-ts-generator/
 │   │   ├── class-generator.ts
 │   │   ├── property-generator.ts
 │   │   └── index-generator.ts
-│   │
+│   ├── model/
+│   │   ├── shacl-model.ts
+│   │   └── iri.ts
 │   ├── templates/
 │   └── utils/
 │       ├── naming.ts
 │       ├── rdf-uri.ts
-│       └── vocab-builder.ts
+│       └── validation.ts
 │
 ├── dist/
 ├── output/
@@ -81,40 +177,23 @@ shacl-ts-generator/
 
 ## TypeScript Configuration
 
-Your current recommended `tsconfig.json`:
-
 ```json
 {
   "compilerOptions": {
-
-    "target": "ES2022",
-
-    "module": "CommonJS",
-    "moduleResolution": "node",
-
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2020",
     "rootDir": "src",
     "outDir": "dist",
-
     "strict": true,
-
     "esModuleInterop": true,
-
     "declaration": true,
     "sourceMap": true,
-
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-
-  "include": [
-    "src/**/*"
-  ],
-
-  "exclude": [
-    "node_modules",
-    "output",
-    "tests"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "output", "tests"]
 }
 ```
 
@@ -122,37 +201,48 @@ Your current recommended `tsconfig.json`:
 
 ## How It Works
 
-### Parse SHACL
+### 1. Parse SHACL
 
-Uses the N3 RDF parser to process SHACL Turtle files and extract:
+Uses the N3 RDF parser to extract:
 
 * NodeShapes
-* Target classes
+* Target constraints
 * Property constraints
 
-Supported SHACL predicates:
+Supported predicates:
 
-* sh:property
-* sh:path
-* sh:datatype
-* sh:class
-* sh:minCount
-* sh:maxCount
+* `sh:property`
+* `sh:path`
+* `sh:datatype`
+* `sh:class`
+* `sh:minCount`
+* `sh:maxCount`
+* `sh:targetClass`
+* `sh:targetNode`
+* `sh:targetSubjectsOf`
+* `sh:targetObjectsOf`
+* `sh:codeIdentifier`
 
 ---
 
-### Internal Shape Model
+### 2. Internal Shape Model
 
 ```ts
 interface ShapeModel {
   name: string
-  targetClass: string
+  codeIdentifier: string
   properties: PropertyModel[]
+
+  targetClass?: string
+  targetNode?: string
+  targetSubjectsOf?: string
+  targetObjectsOf?: string
 }
 
 interface PropertyModel {
-  name: string
+  codeIdentifier: string
   path: string
+
   datatype?: string
   class?: string
   minCount?: number
@@ -162,26 +252,26 @@ interface PropertyModel {
 
 ---
 
-### Generate TypeScript Classes
+### 3. Generate TypeScript Classes
 
-Example generated class:
+Example output:
 
 ```ts
-import { TermWrapper, ValueMappings, TermMappings } from "rdfjs-wrapper"
+import { TermWrapper, ValueMapping } from "rdfjs-wrapper"
 
 export class Person extends TermWrapper {
 
   get name(): string | undefined {
     return this.singularNullable(
       "http://example.com/ns#name",
-      ValueMappings.literalToString
+      ValueMapping.literalToString
     )
   }
 
   get age(): number | undefined {
     return this.singularNullable(
       "http://example.com/ns#age",
-      ValueMappings.literalToNumber
+      ValueMapping.literalToNumber
     )
   }
 }
@@ -191,56 +281,66 @@ export class Person extends TermWrapper {
 
 ## CLI Usage
 
-### Build Project
+### Build the Project
 
 ```bash
-npx tsc
+npm run build
 ```
+
+Compiles TypeScript from `src/` into `dist/`.
+You must run this before executing the CLI from `dist/`.
 
 ---
 
-### Run Generator
+### Register CLI Globally (Optional)
 
-```bash
-node dist/cli.js \
-  --input tests/data/shapes.ttl \
-  --output output
-```
-
----
-
-### Development Mode
-
-```bash
-npx ts-node src/cli.ts tests/data/shapes.ttl output
-```
-
----
-
-## Package Distribution
-
-Package.json configuration:
+Your package exposes:
 
 ```json
-{
-  "type": "commonjs",
-  "bin": {
-    "shacl-ts": "./dist/cli.js"
-  }
+"bin": {
+  "shacl-converter": "./dist/cli.js"
 }
 ```
 
-Install locally:
+To use the CLI globally during development:
 
 ```bash
 npm run build
 npm link
 ```
 
-Run globally:
+This creates a global symlink so you can run:
 
 ```bash
-shacl-ts --input shapes.ttl --output output
+shacl-converter tests/data/shapes.ttl output
+```
+
+from anywhere on your machine.
+
+If you modify source files, re-run:
+
+```bash
+npm run build
+```
+
+You do not need to re-run `npm link` unless the `bin` configuration changes.
+
+---
+
+### Run Without Linking
+
+After building:
+
+```bash
+node dist/cli.js tests/data/shapes.ttl output
+```
+
+---
+
+### Development Mode (No Build Step)
+
+```bash
+npx ts-node src/cli.ts tests/data/shapes.ttl output
 ```
 
 ---
@@ -256,8 +356,8 @@ output/
 
 Each SHACL shape generates:
 
-* TypeScript class file
-* Export index file
+* One TypeScript class file
+* A barrel export file
 
 ---
 
@@ -270,59 +370,26 @@ Each SHACL shape generates:
 
 ex:PersonShape
     a sh:NodeShape ;
+    sh:codeIdentifier "Person" ;
     sh:targetClass ex:Person ;
 
     sh:property [
         sh:path ex:name ;
+        sh:codeIdentifier "name" ;
         sh:datatype xsd:string ;
         sh:minCount 1 ;
     ] ;
 
     sh:property [
         sh:path ex:age ;
+        sh:codeIdentifier "age" ;
         sh:datatype xsd:integer ;
     ] .
 ```
 
----
-
-## Development Workflow
-
-Watch compilation:
-
-```bash
-npx tsc -w
-```
-
-Run generator:
-
-```bash
-npx ts-node src/cli.ts tests/data/shapes.ttl output
-```
-
----
-
-## Future Enhancements
-
-* SHACL constraint type inference
-* Required vs optional property typing
-* Collection typing detection (Set<T> vs T)
-* Zod schema generation
-* JSON-LD context generation
-* Dual build outputs (CJS + ESM)
-
----
-
-## Design Goals
-
-* Strong typing
-* Deterministic code generation
-* RDFJS compliance
-* Solid ecosystem compatibility
 
 ---
 
 ## License
 
 MIT
-

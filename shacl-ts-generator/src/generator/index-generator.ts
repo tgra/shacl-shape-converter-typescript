@@ -1,4 +1,4 @@
-import { ShapeModel } from "../parser/shacl-parser"
+import { ShapeModel } from "../model/shacl-model.js"
 
 export class IndexGenerator {
 

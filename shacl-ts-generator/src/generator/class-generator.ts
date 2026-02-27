@@ -1,5 +1,5 @@
-import { ShapeModel } from "../parser/shacl-parser"
-import { PropertyGenerator } from "./property-generator"
+import { ShapeModel } from "../model/shacl-model.js"
+import { PropertyGenerator } from "./property-generator.js"
 
 export class ClassGenerator {
 
@@ -9,25 +9,22 @@ export class ClassGenerator {
 
   generate(shape: ShapeModel): string {
 
+    if (!shape.properties){
+      return ``
+    }
+
+    
     const properties = shape.properties
       .map(p => this.propertyGenerator.generateProperty(p))
       .join("\n")
 
     return `
 import { TermWrapper } from "rdfjs-wrapper"
-import { ValueMappings, TermMappings } from "rdfjs-wrapper"
+import { ValueMapping, TermMapping } from "rdfjs-wrapper"
 
 export class ${shape.name} extends TermWrapper {
 
-  get id(): string {
-    return this.term.value
-  }
-
 ${properties}
-
-  override toString() {
-    return this.id
-  }
 }
 `
   }

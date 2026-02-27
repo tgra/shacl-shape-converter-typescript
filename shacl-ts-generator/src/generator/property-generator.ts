@@ -1,4 +1,4 @@
-import { ShapePropertyModel } from "../parser/shacl-parser"
+import { ShapePropertyModel } from "../model/shacl-model.js"
 
 export class PropertyGenerator {
 
@@ -7,26 +7,30 @@ export class PropertyGenerator {
     if (prop.maxCount === 1 || !prop.maxCount) {
 
       return `
-  get ${prop.name}(): string | undefined {
+  get ${prop.codeIdentifier}(): string | undefined {
     return this.singularNullable(
-      ${this.toVocabularyRef(prop.path)},
-      ValueMappings.literalToString
+      "${prop.path}",
+      ValueMapping.literalToString
+    )
+  }
+  set ${prop.codeIdentifier}(value: string | undefined) {
+    this.overwriteNullable(
+      "${prop.path}", value,
+      TermMapping.stringToLiteral
     )
   }
 `
-    }
+}
 
     return `
-  get ${prop.name}(): Set<string> {
+  get ${prop.codeIdentifier}(): Set<string> {
     return this.objects(
-      ${this.toVocabularyRef(prop.path)},
-      ValueMappings.iriToString
+      "${prop.path}",
+      ValueMapping.iriToString
     )
   }
 `
   }
 
-  private toVocabularyRef(iri: string) {
-    return iri.split("/").pop()
-  }
+ 
 }

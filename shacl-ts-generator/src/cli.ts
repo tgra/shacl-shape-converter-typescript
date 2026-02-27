@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { generateFromShacl } from "./generator/index"
+import { generateFromShacl } from "./generator/index.js"
 
 const input = process.argv[2]
 const output = process.argv[3]
