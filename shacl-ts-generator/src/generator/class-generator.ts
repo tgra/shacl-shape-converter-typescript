@@ -13,7 +13,6 @@ export class ClassGenerator {
       return ``
     }
 
-    
     const properties = shape.properties
       .map(p => this.propertyGenerator.generateProperty(p))
       .join("\n")

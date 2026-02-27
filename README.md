@@ -22,7 +22,13 @@ This enables strongly typed, RDFJS-compatible TypeScript models derived directly
 
 ---
 
-## `sh:codeIdentifier` Requirement
+## Design decisions
+
+1. ### Treats all properties as read/write (mutable) by default
+
+
+
+2. ### `sh:codeIdentifier` Requirement
 
 This generator requires:
 
@@ -30,7 +36,7 @@ This generator requires:
 sh:codeIdentifier
 ```
 
-### Specification Status
+#### Specification Status
 
 `sh:codeIdentifier` is defined in the **SHACL 1.2 Core Working Draft**:
 
@@ -38,7 +44,7 @@ sh:codeIdentifier
 
 From the specification:
 
-> Shapes may have one value for sh:codeIdentifier to suggest a name that can be used for a representation of the shape in APIs, query languages and similar programmatic access.
+> Shapes may have one value for `sh:codeIdentifier` to suggest a name that can be used for a representation of the shape in APIs, query languages and similar programmatic access.
 
 The value:
 
@@ -46,14 +52,13 @@ The value:
 * Must be `xsd:string`
 * Must match: `^[a-zA-Z_][a-zA-Z0-9_]*$`
 
-### How This Generator Uses It
+#### How This Generator Uses It
 
 * For shapes → TypeScript class name
 * For properties → TypeScript field name
 * Ensures deterministic code generation
 
 It must expand to:
-
 ```
 http://www.w3.org/ns/shacl#codeIdentifier
 ```
@@ -64,15 +69,31 @@ Correct usage:
 sh:codeIdentifier "Person" ;
 ```
 
-⚠ Do **not** write:
 
-```ttl
-sh:codeIdentifier: "Person" ;
-```
+ 3. ### Exclude SHACL Validation Features 
 
-The extra colon changes the IRI and prevents extraction.
+Constraints such as:
+
+* `sh:pattern`
+* `sh:maxLength`
+* `sh:datatype`
+* `sh:class`
+
+are not used during generation.
+
+
+
+4. ### Interpret Cardinality
+
+| SHACL Constraint | Interpretation                |
+| ---------------- | ----------------------------- |
+| `sh:minCount 1`  | Required property             |
+| `sh:maxCount 1`  | Singular (non-array) property |
 
 ---
+
+
+
 
 ## Validation Rules
 
@@ -156,20 +177,24 @@ shacl-ts-generator/
 │   ├── generator/
 │   │   ├── class-generator.ts
 │   │   ├── property-generator.ts
+│   │   ├── index.ts   
 │   │   └── index-generator.ts
 │   ├── model/
 │   │   ├── shacl-model.ts
 │   │   └── iri.ts
 │   ├── templates/
+│   │   └── class.template.ts
 │   └── utils/
 │       ├── naming.ts
 │       ├── rdf-uri.ts
+|       ├── vocab-builder.ts
 │       └── validation.ts
 │
 ├── dist/
 ├── output/
 ├── tests/
 ├── package.json
+├── vitest.config.ts
 └── tsconfig.json
 ```
 
@@ -386,6 +411,31 @@ ex:PersonShape
         sh:datatype xsd:integer ;
     ] .
 ```
+
+---
+
+
+
+## Tests
+
+This project uses a multi-layer testing strategy to ensure reliable SHACL parsing, validation, and code generation.
+
+Tests are divided into:
+
+* **Unit tests** – Validate individual parser and utility functions in isolation.
+* **Integration tests** – Test the full pipeline from SHACL TTL input through RDF parsing and model generation.
+* **Fixture tests** – Use predefined SHACL documents to guarantee deterministic parsing behavior.
+* **CLI tests** – Verify real command-line execution, including argument handling and file generation.
+
+Run the test suite with:
+
+```bash
+npm test
+```
+
+Tests are implemented using **Vitest** with fixture-based inputs for consistency and reliability.
+
+
 
 
 ---
