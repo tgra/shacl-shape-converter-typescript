@@ -1,23 +1,85 @@
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix ex: <http://example.com/ns#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+
+#################################################################
+# Shape 1 — targetClass example
+#################################################################
 
 ex:PersonShape
     a sh:NodeShape ;
+
+    sh:codeIdentifier "PersonShape" ;
+
+    # Applies to all Persons
     sh:targetClass ex:Person ;
-    sh:codeIdentifier "Person";
 
     sh:property [
         sh:path ex:name ;
+        sh:codeIdentifier "name" ;
         sh:datatype xsd:string ;
         sh:minCount 1 ;
-        sh:codeIdentifier "name";
-
     ] ;
 
     sh:property [
         sh:path ex:age ;
+        sh:codeIdentifier "age" ;
         sh:datatype xsd:integer ;
-        sh:codeIdentifier "age";
-
     ] .
+
+#################################################################
+# Shape 2 — targetNode example
+#################################################################
+
+ex:SingletonConfigShape
+    a sh:NodeShape ;
+
+    sh:codeIdentifier "SingletonConfigShape" ;
+
+    # Applies only to this specific node
+    sh:targetNode ex:AppConfig ;
+
+    sh:property [
+        sh:path ex:version ;
+        sh:codeIdentifier "version" ;
+        sh:datatype xsd:string ;
+    ] .
+
+#################################################################
+# Shape 3 — targetSubjectsOf example
+#################################################################
+
+ex:ArticleSubjectShape
+    a sh:NodeShape ;
+
+    sh:codeIdentifier "ArticleSubjectShape" ;
+
+    # Applies to subjects that have ex:writtenBy predicate
+    sh:targetSubjectsOf ex:writtenBy ;
+
+    sh:property [
+        sh:path ex:title ;
+        sh:codeIdentifier "title" ;
+        sh:datatype xsd:string ;
+    ] .
+
+#################################################################
+# Shape 4 — targetObjectsOf example
+#################################################################
+
+ex:AuthorObjectShape
+    a sh:NodeShape ;
+
+    sh:codeIdentifier "AuthorObjectShape" ;
+
+    # Applies to objects of ex:writtenBy predicate
+    sh:targetObjectsOf ex:writtenBy ;
+
+    sh:property [
+        sh:path ex:name ;
+        sh:codeIdentifier "authorName" ;
+        sh:datatype xsd:string ;
+    ] .
+

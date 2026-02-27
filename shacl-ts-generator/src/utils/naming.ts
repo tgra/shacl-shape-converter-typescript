@@ -2,7 +2,8 @@ export class NamingUtils {
 
   static toClassName(uri: string): string {
     const name = uri.split(/[/#]/).pop() || "Resource"
-    return NamingUtils.pascalCase(name)
+    //return NamingUtils.pascalCase(name)
+    return name
   }
 
   static toPropertyName(uri: string): string {
