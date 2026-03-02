@@ -223,7 +223,7 @@ npm run build
 Run CLI:
 
 ```
-shacl-converter src/cli.ts tests/data/shapes.ttl output
+node src/cli.ts tests/data/shapes.ttl output
 ```
 
 Register globally:
