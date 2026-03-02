@@ -24,6 +24,6 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
-    "dev": "ts-node src/cli.ts"
+    "dev": "shacl-converter src/cli.ts"
   }
 }

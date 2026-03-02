@@ -1,13 +1,13 @@
 # SHACL → TypeScript Class Generator
 
-A Node.js + TypeScript CLI tool that transforms SHACL shape definitions into strongly typed RDFJS-compatible TypeScript resource wrappers.
+A Node.js + TypeScript CLI tool that transforms SHACL shape definitions into RDFJS-compatible TypeScript resource wrappers.
 
-The generator follows a compiler-style pipeline:
+The generator follows a pipeline:
 
 ```
-Parse RDF
+Parse SHACL RDF
 ↓
-Validate Schema Constraints
+Validate Constraints
 ↓
 Normalize Models
 ↓
@@ -22,12 +22,12 @@ Given a SHACL shape file, this tool:
 
 * Parses `sh:NodeShape` definitions using the N3 RDF parser
 * Enforces generator metadata requirements
-* Requires `sh:codeIdentifier` for shapes and properties
+  * Requires `sh:codeIdentifier` for shapes and properties
 * Extracts property constraints and cardinality rules
 * Generates RDFJS-compatible wrapper classes
 * Reports validation errors before code generation
 
-This enables strongly typed knowledge graph programming using TypeScript.
+This enables knowledge graph programming using TypeScript.
 
 ---
 
@@ -49,12 +49,6 @@ get name(): string | undefined
 set name(value: string | undefined)
 ```
 
-Benefits:
-
-* Strong typing
-* Safe term conversion
-* Object-style graph mutation
-* RDFJS dataset compatibility
 
 ---
 
@@ -81,8 +75,6 @@ sh:codeIdentifier
 Used for:
 
 * TypeScript class name
-* Deterministic generation
-* API stability
 
 Must be a valid identifier matching:
 
@@ -178,18 +170,19 @@ vitest
 
 ```
 shacl-ts-generator/
-
-src/
-  cli.ts
-  parser/
-  generator/
-  model/
-  utils/
-  templates/
-
-dist/
-output/
-tests/
+  dist/
+  output/
+  src/
+    generator/
+    model/
+    parser/
+    templates/
+    utils/
+    cli.ts
+  tests/
+  package.json
+  tsconfig.json
+  vitest.config.ts
 ```
 
 ---
@@ -197,16 +190,29 @@ tests/
 ## TypeScript Configuration
 
 ```
-module: NodeNext
-target: ES2020
-strict: true
-declaration: true
-sourceMap: true
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2020",
+    "rootDir": "src",
+    "outDir": "dist",
+    "strict": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["vitest/globals", "node"]
 ```
 
 ---
 
 ## CLI Usage
+
+Install TypeScript locally in your project:
+
+``` 
+npm install --save-dev typescript
+```
 
 Build project:
 
@@ -217,7 +223,7 @@ npm run build
 Run CLI:
 
 ```
-shacl-converter shapes.ttl output
+shacl-converter src/cli.ts tests/data/shapes.ttl output
 ```
 
 Register globally:
@@ -225,6 +231,12 @@ Register globally:
 ```
 npm run build
 npm link
+```
+
+Run CLI:
+
+```
+shacl-converter tests/data/shapes.ttl output
 ```
 
 ---
