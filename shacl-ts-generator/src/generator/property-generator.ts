@@ -7,11 +7,8 @@ export class PropertyGenerator {
   generateProperty(prop: ShapePropertyModel): string {
 
     const baseType = this.inferType(prop)
-
     const path = prop.path
-
     const mapping = this.inferMapping(prop)
-
     const identifier = prop.codeIdentifier
     const capitalized = this.capitalize(identifier)
 
@@ -25,11 +22,7 @@ export class PropertyGenerator {
   get ${identifier}(): Set<${baseType}> {
     const values = new Set<${baseType}>()
 
-    for (const value of this.objects(
-      "${path}",
-      ${mapping},
-      TermMapping.stringToLiteral
-    )) {
+    for (const value of this.objects("${path}", ${mapping}, TermMapping.stringToLiteral)) {
       values.add(value as ${baseType})
     }
 
@@ -37,23 +30,13 @@ export class PropertyGenerator {
   }
 
   add${capitalized}(value: ${baseType}) {
-      
-      const valueSet = this.objects(
-        "${path}",
-        ValueMapping.literalToString,
-        TermMapping.stringToLiteral
-        )
-        valueSet.add(value)
-       
+      const valueSet = this.objects("${path}", ValueMapping.literalToString, TermMapping.stringToLiteral)
+      valueSet.add(value) 
       }
 
   delete${capitalized}(value: ${baseType}) {
-      const valueSet = this.objects(
-        "${path}",
-        ValueMapping.literalToString,
-        TermMapping.stringToLiteral
-        )
-        valueSet.delete(value)
+    const valueSet = this.objects("${path}", ValueMapping.literalToString, TermMapping.stringToLiteral)
+    valueSet.delete(value)
   }
 `
     }
@@ -66,28 +49,12 @@ export class PropertyGenerator {
 
     return `
   get ${identifier}(): ${returnType} | undefined {
-    
-    return this.singularNullable(
-      "${path}",
-      ${mapping}
-      ) 
+    return this.singularNullable("${path}", ${mapping}) 
   }
-
-
 
   set ${identifier}(value: ${baseType} | undefined) {
-
-    if (!value || value === undefined || value === null) {
-      throw new Error("${identifier} cannot be empty")
-    }
-
-    this.overwriteNullable(
-      "${path}",
-      value,
-      TermMapping.${this.termMapping(baseType)}
-    )
-  }
-`
+    this.overwriteNullable("${path}", value, TermMapping.${this.termMapping(baseType)})
+  }`
   }
 
   // --------------------------------------------------
